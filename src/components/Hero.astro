@@ -29,20 +29,35 @@ const featured = siteConfig.projects.find((p) => "featured" in p && p.featured);
       {siteConfig.title}
     </p>
 
-    {featured && featured.link && (
-      <a
-        href={featured.link}
-        target="_blank"
-        rel="noopener noreferrer"
-        class="glow-accent mt-10 inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-white transition-all hover:brightness-110 animate-fade-in animation-delay-600"
-        style={`background: linear-gradient(90deg, ${siteConfig.accentColor}, #6366f1)`}
-      >
-        Try the live recommender demo
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 17L17 7M17 7H7M17 7V17" />
-        </svg>
-      </a>
-    )}
+    <div class="mt-10 flex flex-wrap items-center gap-3 animate-fade-in animation-delay-600">
+      {featured && featured.link && (
+        <a
+          href={featured.link}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="glow-accent inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium text-white transition-all hover:brightness-110"
+          style={`background: linear-gradient(90deg, ${siteConfig.accentColor}, #6366f1)`}
+        >
+          Try the live recommender demo
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 17L17 7M17 7H7M17 7V17" />
+          </svg>
+        </a>
+      )}
+      {siteConfig.resumeUrl && (
+        <a
+          href={siteConfig.resumeUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-2 rounded-xl border border-[#26262b] px-5 py-2.5 text-sm font-medium text-[#a1a1ab] transition-all hover:text-white hover:border-[var(--accent-color)]"
+        >
+          Résumé
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </a>
+      )}
+    </div>
 
     <div class="mt-12 flex gap-x-5 text-[#a1a1ab] animate-fade-in animation-delay-600">
       {siteConfig.social?.email && (

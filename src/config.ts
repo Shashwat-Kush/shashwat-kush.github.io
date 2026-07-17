@@ -4,6 +4,7 @@ export const siteConfig = {
   description:
     "Portfolio of Shashwat Kushwaha — data analytics, machine learning, and systems. Featured: an end-to-end movie recommendation engine with a live demo.",
   accentColor: "#8b5cf6",
+  resumeUrl: "/resume.pdf",
   social: {
     email: "shashwatkush002@gmail.com",
     linkedin: "https://www.linkedin.com/in/shashwatkushwaha-",
@@ -14,12 +15,14 @@ export const siteConfig = {
   skills: [
     "Python",
     "PyTorch",
+    "C++",
     "SQL",
     "Machine Learning",
+    "XGBoost",
+    "Kafka",
+    "MLflow",
     "FastAPI",
     "Docker",
-    "Microsoft Excel",
-    "Operations Management",
     "GitHub Actions",
   ],
   projects: [
@@ -42,15 +45,20 @@ export const siteConfig = {
     {
       name: "Real-Time Fraud Detection & MLOps Pipeline",
       description:
-        "Event-driven system for detecting financial fraud in real time. Streams transactions through Kafka, trains XGBoost models tracked in MLflow, serves predictions through a FastAPI microservice, and monitors for data drift with Evidently AI.",
+        "Event-driven fraud detection on 6.3M PaySim transactions: stateful Kafka streaming, 24h leakage-safe rolling features, and XGBoost augmented with GraphSAGE account embeddings — served via FastAPI with an MLflow registry (champion/challenger) and Evidently drift monitoring. Built the GraphSAGE variant, caught temporal leakage that was inflating its scores, fixed it, and shipped the simpler class-weighted model on honest numbers.",
+      metrics: [
+        { value: "0.905", label: "AUC-PR on a <0.2% fraud rate" },
+        { value: "94%", label: "of fraud caught at the operating threshold" },
+        { value: "6.3M", label: "transactions streamed through Kafka" },
+      ],
       link: "https://github.com/Shashwat-Kush/fraud-detection",
-      skills: ["Python", "Kafka", "XGBoost", "FastAPI", "MLflow", "Docker"],
+      linkLabel: "GitHub",
+      skills: ["Python", "Kafka", "XGBoost", "GraphSAGE", "FastAPI", "MLflow", "Docker"],
     },
     {
       name: "Automated Daily News Digest",
       description:
         "A fully automated pipeline that sends a morning email covering business, economics, and tech. Built with an LLM API for summarization, Gmail SMTP for delivery, and GitHub Actions for scheduling.",
-      link: "https://github.com/Shashwat-Kush",
       skills: ["Python", "LLM APIs", "GitHub Actions", "Gmail SMTP"],
     },
     {
@@ -79,13 +87,20 @@ export const siteConfig = {
       company: "Atomberg Technologies",
       title: "Data Analyst",
       dateRange: "May 2025 - Jul 2025",
-      bullets: [],
+      bullets: [
+        "Identified 22% volumetric wastage across 1,500+ SKUs via multi-level Pareto analysis, tracing it to 170+ non-standard box sizes.",
+        "Designed a heuristic 3D pallet-packing algorithm at 83% accuracy, validated on 150+ operational test cases and projecting a 30% cut in pallet volume wastage.",
+        "Built a Streamlit dashboard over 3,500+ bin locations with SQL-backed metrics and predictive alerts to prevent critical out-of-space events.",
+      ],
     },
     {
       company: "Vidyasagar Hall of Residence, IIT Kharagpur",
       title: "Hall President",
       dateRange: "Aug 2024 - Aug 2025",
-      bullets: [],
+      bullets: [
+        "Led a 26-member council serving 300+ residents and managed an INR 1.8M+ budget across 40+ annual events.",
+        "Represented 16,000+ students as Student Senator, translating hall-level feedback into campus-wide academic policy initiatives.",
+      ],
     },
     {
       company: "Optima, IIT Kharagpur",
@@ -97,7 +112,10 @@ export const siteConfig = {
       company: "University of Kent",
       title: "Deep Learning Researcher",
       dateRange: "May 2024 - Jul 2024",
-      bullets: [],
+      bullets: [
+        "Ran a comparative study of RAG vs. Representation Fine-Tuning (ReFT), curating an NLP dataset by scraping 50+ privacy policies with Python/BeautifulSoup.",
+        "Drove a 10% uplift in retrieval with a sentence-window RAG pipeline (Groq API), then a further 10% gain by applying ReFT to the Llama 3-7B model.",
+      ],
     },
     {
       company: "IISER Kolkata",
@@ -109,7 +127,10 @@ export const siteConfig = {
       company: "Optima, IIT Kharagpur",
       title: "Head of Finance",
       dateRange: "Sep 2023 - Apr 2024",
-      bullets: [],
+      bullets: [
+        "Founding member of the inaugural Optima fest; drove sponsorship and event strategy to draw 1,000+ attendees.",
+        "Directed an INR 1.1M+ budget and secured 15+ industry partnerships, including Optym, Air India, and Delhivery.",
+      ],
     },
     {
       company: "Vidyasagar Hall of Residence, IIT Kharagpur",

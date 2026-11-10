@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Deep Delve">
+<meta name="theme-color" content="#120d0a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Deep Delve</title>
+<style>
+:root{
+  --bg:#120d0a; --panel:#1e1712; --panel2:#2a2019; --ink:#f3e9dc; --muted:#a8968a;
+  --gem:#46e3ff; --gold:#ffc83d; --danger:#ff5a4f; --ok:#5dfc9b;
+  --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
+  --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);overflow:hidden;overscroll-behavior:none;touch-action:none;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Rounded","Segoe UI",Roboto,sans-serif}
+#app{position:fixed;inset:0;display:flex;flex-direction:column;
+  padding:calc(var(--sat) + 6px) calc(var(--sar) + 8px) calc(var(--sab) + 8px) calc(var(--sal) + 8px)}
+#hud{display:flex;align-items:center;gap:8px;height:48px;flex:0 0 auto}
+.btn{appearance:none;border:0;border-radius:14px;background:var(--panel2);color:var(--ink);font:inherit;font-weight:700;
+  height:42px;min-width:42px;padding:0 12px;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06)}
+.btn:active{transform:translateY(1px);box-shadow:inset 0 -1px 0 rgba(0,0,0,.35)}
+.btn svg{width:22px;height:22px}
+#lvlname{flex:1;min-width:0;line-height:1.1}
+#lvlname b{display:block;font-size:13px;color:var(--muted);font-weight:600;letter-spacing:.04em}
+#lvlname span{display:block;font-size:17px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip{display:flex;align-items:center;gap:5px;background:var(--panel);border-radius:12px;height:36px;padding:0 10px;font-weight:800;font-variant-numeric:tabular-nums}
+.chip svg{width:18px;height:18px}
+#gemchip.done{color:var(--ok)}
+#stage{position:relative;flex:1 1 auto;min-height:0;margin:6px 0;border-radius:18px;overflow:hidden;background:#0b0806;
+  box-shadow:inset 0 0 0 2px #2a2019}
+canvas{display:block;width:100%;height:100%}
+#pad{flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:18px;padding-top:4px}
+#dpad{position:relative;width:min(184px,46vw);height:min(184px,46vw);touch-action:none}
+#dpad .arm{position:absolute;background:var(--panel2);border-radius:16px;
+  box-shadow:inset 0 -4px 0 rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.07)}
+#dpad .h{left:0;right:0;top:33.3%;height:33.4%}
+#dpad .v{top:0;bottom:0;left:33.3%;width:33.4%}
+#dpad .hub{position:absolute;left:33.3%;top:33.3%;width:33.4%;height:33.4%;background:var(--panel2);z-index:1}
+#dpad .ar{position:absolute;width:33.4%;height:33.4%;display:flex;align-items:center;justify-content:center;z-index:2;transition:background .06s}
+#dpad .ar svg{width:42%;height:42%;fill:#d9c6b4;opacity:.85}
+#dpad .ar.on{background:rgba(70,227,255,.22);border-radius:14px}
+#dpad .ar.on svg{fill:var(--gem);opacity:1}
+#aU{left:33.3%;top:0}#aD{left:33.3%;bottom:0}#aL{left:0;top:33.3%}#aR{right:0;top:33.3%}
+.side{display:flex;flex-direction:column;gap:10px}
+.overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:24px;
+  background:rgba(10,7,5,.72);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);z-index:5}
+.overlay.show{display:flex}
+.card{background:var(--panel);border-radius:22px;padding:22px 20px;width:100%;max-width:360px;text-align:center;
+  box-shadow:0 20px 50px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06)}
+.card h2{margin:4px 0 6px;font-size:26px}
+.card p{margin:6px 0 16px;color:var(--muted);line-height:1.4}
+.card .row{display:flex;gap:10px;justify-content:center}
+.big{height:52px;font-size:18px;padding:0 22px;border-radius:16px}
+.primary{background:#e7a93a;color:#2a1a07}
+#toast{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);width:calc(100% - 28px);max-width:380px;z-index:4;
+  background:rgba(30,23,18,.92);border-radius:16px;padding:12px 14px;text-align:center;pointer-events:none;
+  transition:opacity .4s, transform .4s;opacity:0}
+#toast.show{opacity:1}
+#toast b{display:block;font-size:17px;margin-bottom:3px}
+#toast span{font-size:14px;color:var(--muted);line-height:1.35}
+#flash{position:absolute;inset:0;pointer-events:none;background:var(--danger);opacity:0;transition:opacity .5s;z-index:3}
+/* title screen */
+#title{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  padding:calc(var(--sat) + 20px) 24px calc(var(--sab) + 20px);
+  background:radial-gradient(ellipse at 50% 30%, #2d2118 0%, #120d0a 70%)}
+#title.hide{display:none}
+#title h1{margin:0;font-size:46px;letter-spacing:.06em;font-weight:900;text-align:center;line-height:.95;
+  background:linear-gradient(#ffe2a6,#e7a93a);-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 3px 0 #5a3812)}
+#title .sub{color:var(--muted);margin:-4px 0 8px;text-align:center}
+#titleGem{width:120px;height:120px}
+#levels{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;width:100%;max-width:340px;margin-top:6px}
+#levels button{height:58px;border-radius:14px;font-size:20px;flex-direction:column;gap:0}
+#levels button small{font-size:10px;color:var(--gold);font-weight:700;height:12px}
+#levels button.locked{opacity:.35}
+#levels button.cur{box-shadow:0 0 0 2px var(--gem), inset 0 -3px 0 rgba(0,0,0,.35)}
+.how{color:var(--muted);font-size:13px;text-align:center;max-width:320px;line-height:1.45}
+@media (min-aspect-ratio: 1/1){ #app{flex-direction:column} #pad{position:absolute;right:calc(var(--sar) + 16px);bottom:calc(var(--sab) + 16px);opacity:.9} }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hud">
+    <button class="btn" id="bMenu" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <div id="lvlname"><b id="lvlnum">LEVEL 1</b><span id="lvltitle">Into the Cave</span></div>
+    <div class="chip" id="keychip" style="display:none"><svg viewBox="0 0 24 24"><circle cx="8" cy="12" r="4.5" fill="none" stroke="#ffc83d" stroke-width="2.6"/><path d="M12 12h9M18 12v3.5M21 12v2.5" stroke="#ffc83d" stroke-width="2.6" stroke-linecap="round"/></svg><span id="keyn">0</span></div>
+    <div class="chip" id="gemchip"><svg viewBox="0 0 24 24"><path d="M6 4h12l4 6-10 11L2 10z" fill="#46e3ff"/><path d="M2 10h20M8.5 4 7 10l5 11 5-11-1.5-6" fill="none" stroke="#0a6f86" stroke-width="1.2"/></svg><span id="gemn">0/5</span></div>
+    <button class="btn" id="bRestart" aria-label="Restart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v5h5"/></svg></button>
+  </div>
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="flash"></div>
+    <div id="toast"><b id="toastT"></b><span id="toastS"></span></div>
+    <div class="overlay" id="ovWin"><div class="card">
+      <h2 id="winT">Level clear!</h2><p id="winS"></p>
+      <div class="row"><button class="btn big" id="bReplay">Replay</button><button class="btn big primary" id="bNext">Next</button></div>
+    </div></div>
+    <div class="overlay" id="ovMenu"><div class="card">
+      <h2>Paused</h2><p>Tip: hold a direction to keep moving. Swiping on the cave works too.</p>
+      <div class="row" style="flex-wrap:wrap">
+        <button class="btn big" id="bSound">Sound: on</button>
+        <button class="btn big" id="bLevels">Levels</button>
+        <button class="btn big primary" id="bResume">Resume</button>
+      </div>
+    </div></div>
+  </div>
+  <div id="pad">
+    <div id="dpad">
+      <div class="arm h"></div><div class="arm v"></div><div class="hub"></div>
+      <div class="ar" id="aU"><svg viewBox="0 0 24 24"><path d="M12 5l8 11H4z"/></svg></div>
+      <div class="ar" id="aD"><svg viewBox="0 0 24 24"><path d="M12 19l8-11H4z"/></svg></div>
+      <div class="ar" id="aL"><svg viewBox="0 0 24 24"><path d="M5 12l11-8v16z"/></svg></div>
+      <div class="ar" id="aR"><svg viewBox="0 0 24 24"><path d="M19 12L8 4v16z"/></svg></div>
+    </div>
+  </div>
+</div>
+
+<div id="title">
+  <canvas id="titleGem" width="240" height="240"></canvas>
+  <h1>DEEP<br>DELVE</h1>
+  <div class="sub">Dig. Dodge. Grab the gems.</div>
+  <button class="btn big primary" id="bPlay">Play</button>
+  <div id="levels"></div>
+  <div class="how">Collect enough gems to open the exit. Falling boulders crush, spikes stab and beetles bite. A boulder dropped on a beetle turns it into a gem.</div>
+</div>
+
+<script>
+// ===== Deep Delve: core game logic (pure, no DOM) =====
+const T = { EMPTY:0, DIRT:1, WALL:2, BOULDER:3, GEM:4, PLAYER:5, EXIT:6, KEY:7, DOOR:8, SPIKES:9, BEETLE:10 };
+const CH = { ' ':0, '.':1, '#':2, 'O':3, '*':4, 'P':5, 'E':6, 'k':7, 'D':8, '^':9, 'B':10 };
+const DIRS = [null, [-1,0], [1,0], [0,-1], [0,1]]; // 1 L, 2 R, 3 U, 4 D
+
+function loadLevel(def) {
+  const rows = def.map;
+  const h = rows.length, w = Math.max(...rows.map(r => r.length));
+  const n = w * h;
+  const g = new Uint8Array(n), f = new Uint8Array(n), d = new Int8Array(n);
+  let px = 0, py = 0, gemCount = 0;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const c = rows[y][x] ?? '#';
+    const t = CH[c] ?? 2;
+    const i = y * w + x;
+    g[i] = t;
+    if (t === T.PLAYER) { px = x; py = y; }
+    if (t === T.GEM) gemCount++;
+    if (t === T.BEETLE) d[i] = 1;
+  }
+  return { w, h, g, f, d, px, py, keys: 0, gems: 0, need: def.need ?? gemCount,
+           tick: 0, dead: false, won: false, facing: 1 };
+}
+
+function cloneState(s) {
+  return { ...s, g: s.g.slice(), f: s.f.slice(), d: s.d.slice() };
+}
+
+const isRound = t => t === T.BOULDER || t === T.GEM;
+
+// Advance one tick. dir: 0 none, 1..4. Returns {moves:[[from,to],...], events:[...]}
+function step(s, dir) {
+  const out = { moves: [], events: [] };
+  if (s.dead || s.won) return out;
+  const { w, h, g, f, d } = s;
+  s.tick++;
+
+  // ---- player ----
+  if (dir) {
+    const [dx, dy] = DIRS[dir];
+    if (dx) s.facing = dx;
+    const pi = s.py * w + s.px;
+    const nx = s.px + dx, ny = s.py + dy;
+    const ni = ny * w + nx;
+    const t = g[ni];
+    let go = false;
+    if (t === T.EMPTY) go = true;
+    else if (t === T.DIRT) { go = true; out.events.push(['dig', ni]); }
+    else if (t === T.GEM) { go = true; s.gems++; out.events.push(['gem', ni]); }
+    else if (t === T.KEY) { go = true; s.keys++; out.events.push(['key', ni]); }
+    else if (t === T.DOOR && s.keys > 0) { go = true; s.keys--; out.events.push(['door', ni]); }
+    else if (t === T.EXIT && s.gems >= s.need) { go = true; s.won = true; out.events.push(['win', ni]); }
+    else if (t === T.SPIKES) { go = true; s.dead = true; out.events.push(['die', ni]); }
+    else if (t === T.BEETLE) { go = true; s.dead = true; out.events.push(['die', ni]); }
+    else if (t === T.BOULDER && dy === 0 && !f[ni]) {
+      const bi = ni + dx;
+      if (g[bi] === T.EMPTY) {
+        g[bi] = T.BOULDER; f[bi] = 0; out.moves.push([ni, bi]);
+        go = true; out.events.push(['push', bi]);
+      }
+    }
+    if (go) {
+      g[pi] = T.EMPTY;
+      // spikes/beetle/exit cells: player overwrites for display purposes
+      g[ni] = T.PLAYER; f[ni] = 0;
+      out.moves.push([pi, ni]);
+      s.px = nx; s.py = ny;
+    }
+    if (s.won) return out;
+  }
+
+  // ---- gravity (bottom-up) ----
+  const moved = new Uint8Array(w * h);
+  for (let y = h - 2; y >= 0; y--) {
+    for (let x = 0; x < w; x++) {
+      const i = y * w + x;
+      const t = g[i];
+      if (!isRound(t) || moved[i]) continue;
+      const bi = i + w, b = g[bi];
+      if (b === T.EMPTY) {
+        g[bi] = t; f[bi] = 1; g[i] = T.EMPTY; f[i] = 0; moved[bi] = 1;
+        out.moves.push([i, bi]);
+      } else if (b === T.PLAYER) {
+        if (f[i] && !s.dead) { s.dead = true; out.events.push(['crush', bi]); }
+        f[i] = 0;
+      } else if (b === T.BEETLE && f[i]) {
+        g[bi] = T.GEM; f[bi] = 0; d[bi] = 0; f[i] = 0;
+        out.events.push(['squash', bi]);
+      } else if (b === T.SPIKES && t === T.BOULDER && f[i]) {
+        // falling boulder shatters on spikes; both are destroyed
+        g[bi] = T.EMPTY; g[i] = T.EMPTY; f[i] = 0;
+        out.events.push(['smash', bi]);
+      } else if (isRound(b) && !f[bi]) {
+        if (x > 0 && g[i - 1] === T.EMPTY && g[bi - 1] === T.EMPTY) {
+          g[i - 1] = t; f[i - 1] = 1; g[i] = T.EMPTY; f[i] = 0; moved[i - 1] = 1;
+          out.moves.push([i, i - 1]);
+        } else if (x < w - 1 && g[i + 1] === T.EMPTY && g[bi + 1] === T.EMPTY) {
+          g[i + 1] = t; f[i + 1] = 1; g[i] = T.EMPTY; f[i] = 0; moved[i + 1] = 1;
+          out.moves.push([i, i + 1]);
+        } else f[i] = 0;
+      } else {
+        if (f[i]) out.events.push(['land', i]);
+        f[i] = 0;
+      }
+    }
+  }
+
+  // ---- beetles (move every 2nd tick) ----
+  if (s.tick % 2 === 0) {
+    const bm = new Uint8Array(w * h);
+    for (let i = 0; i < w * h; i++) {
+      if (g[i] !== T.BEETLE || bm[i]) continue;
+      const dx = d[i] || 1;
+      const ni = i + dx;
+      if (g[ni] === T.PLAYER) {
+        if (!s.dead) { s.dead = true; out.events.push(['bite', ni]); }
+      } else if (g[ni] === T.EMPTY) {
+        g[ni] = T.BEETLE; d[ni] = dx; g[i] = T.EMPTY; d[i] = 0; bm[ni] = 1;
+        out.moves.push([i, ni]);
+      } else {
+        d[i] = -dx;
+      }
+    }
+  }
+  return out;
+}
+
+function stateKey(s) {
+  return String.fromCharCode.apply(null, s.g) + '|' + String.fromCharCode.apply(null, s.f) +
+         '|' + Array.from(s.d).join(',') + '|' + s.keys + '|' + s.gems + '|' + (s.tick % 2);
+}
+
+if (typeof module !== 'undefined') module.exports = { T, loadLevel, cloneState, step, stateKey, DIRS };
+
+const LEVELS = [
+{ name: "Into the Cave", hint: "Swipe or use the pad to dig. Grab every gem, then reach the exit.", map: [
+"#############",
+"#P....#....*#",
+"#.###.#.###.#",
+"#.#*....#*..#",
+"#.#.###.#.#.#",
+"#...#*..#.#.#",
+"###.#.###.#.#",
+"#*........#E#",
+"#############"]},
+{ name: "Look Up", hint: "Boulders fall when nothing holds them. Never stop right under a falling one.", map: [
+"###########",
+"#P.O.O.O..#",
+"#..*.*.*..#",
+"#.........#",
+"#.O.....O.#",
+"#.*.....*.#",
+"#.........#",
+"#...O.O...#",
+"#...*.*...#",
+"#....E....#",
+"###########"]},
+{ name: "Avalanche", hint: "Stones roll off each other. Dig carefully.", map: [
+"#############",
+"#P....O.....#",
+"#.....O.....#",
+"#....OOO....#",
+"#...*****...#",
+"#...........#",
+"#.....E.....#",
+"#############"]},
+{ name: "Spike Pockets", hint: "A falling boulder shatters spikes. Dig under one and step aside.", map: [
+"###############",
+"#P...........*#",
+"#.#O#O#O#O#O#.#",
+"#............E#",
+"###^#^#^#^#^###",
+"###*#*#*#*#*###",
+"###############"]},
+{ name: "Push Off", hint: "Push boulders sideways into the holes to clear the spikes below.", map: [
+"#############",
+"#P..O .O .O #",
+"#.### ## ## #",
+"#.*..^.*^.*^#",
+"###########.#",
+"#*..........#",
+"#E###########",
+"#############"]},
+{ name: "Lock and Key", hint: "Keys open doors. Each key works once.", map: [
+"#############",
+"#P.....#k...#",
+"#.####.#.##.#",
+"#.#*...D..#*#",
+"#.#.#####.#.#",
+"#k#...*...#.#",
+"#.#######D#.#",
+"#....*....#E#",
+"#############"]},
+{ name: "Bug Squash", hint: "Drop a boulder on a beetle to turn it into a gem. Time it right.", need: 3, map: [
+"#############",
+"#P....O.....#",
+"#.##### ###.#",
+"#..   B   ..#",
+"#.#########.#",
+"#*.......*.E#",
+"#############"]},
+{ name: "Beetle Run", hint: "Beetles patrol the tunnels. Cross when the coast is clear.", map: [
+"#############",
+"#P..........#",
+"#.#.#.#.#.#.#",
+"#   B       #",
+"#.#.#.#.#.#.#",
+"#       B   #",
+"#.#.#.#.#.#.#",
+"#*.*.*.*.*.E#",
+"#############"]},
+{ name: "Key Chain", hint: "Plan your route. Some doors are better left for later.", map: [
+"###############",
+"#P....#*.....k#",
+"#.###.#.#####.#",
+"#.#k#.D.#*..#.#",
+"#.#.#.###.#.#.#",
+"#.....#*..#...#",
+"#####.#####D###",
+"#*....O.......#",
+"#.#########.#.#",
+"#....*....#*#E#",
+"###############"]},
+{ name: "Beetle Vault", hint: "The key sits next to a beetle's tunnel. Squash it or sneak past.", need: 2, map: [
+"###############",
+"#P....O.......#",
+"#.##### #####.#",
+"#.#k  B  #*.#.#",
+"#.#.#######.#.#",
+"#.....D.....#E#",
+"###############"]},
+{ name: "The Deep", hint: "Everything you've learned, all at once.", map: [
+"#################",
+"#P....O ........#",
+"#.##### #######.#",
+"#.#k   B    #*..#",
+"#.#.#########.#.#",
+"#.#...........#.#",
+"#.#O#O#O#.#####.#",
+"#.............#.#",
+"###^#^#^#.#####.#",
+"#*.*#*#*#.....*.#",
+"#.......#######.#",
+"#.OOO...D...*.#E#",
+"#.***...#.....#.#",
+"#################"]},
+];
+if (typeof module !== 'undefined') module.exports = LEVELS;
+
+</script>
+<script>
+(() => {
+'use strict';
+const TICK = 135;
+const VIEW_COLS = 15, VIEW_ROWS = 16;
+const $ = id => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d');
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('deepdelve.' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('deepdelve.' + k, JSON.stringify(v)); } catch (e) {} }
+};
+let unlocked = Math.min(store.get('unlocked', 1), LEVELS.length);
+let best = store.get('best', {});
+let soundOn = store.get('sound', true);
+
+// ---------- audio ----------
+let ac = null;
+function audio() {
+  if (!soundOn) return null;
+  if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+  if (ac.state === 'suspended') ac.resume().catch(()=>{});
+  return ac;
+}
+function tone(freq, dur, type = 'sine', vol = .15, slide = 0, delay = 0) {
+  const a = audio(); if (!a) return;
+  const t = a.currentTime + delay;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq + slide), t + dur);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + .02);
+}
+let noiseBuf = null;
+function noise(dur, vol = .2, freq = 800, delay = 0) {
+  const a = audio(); if (!a) return;
+  if (!noiseBuf) { noiseBuf = a.createBuffer(1, a.sampleRate * .5, a.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+  const t = a.currentTime + delay;
+  const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+  s.buffer = noiseBuf; f.type = 'lowpass'; f.frequency.value = freq;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  s.connect(f).connect(g).connect(a.destination); s.start(t); s.stop(t + dur + .02);
+}
+const SFX = {
+  dig: () => noise(.07, .06, 600),
+  gem: () => { tone(1046, .12, 'triangle', .12); tone(1568, .18, 'triangle', .1, 0, .06); },
+  key: () => { tone(880, .1, 'square', .06); tone(1320, .2, 'square', .05, 0, .08); },
+  door: () => { tone(180, .25, 'sawtooth', .07, -60); noise(.2, .08, 400); },
+  push: () => noise(.12, .12, 250),
+  land: () => { noise(.14, .18, 180); tone(70, .15, 'sine', .2, -30); },
+  smash: () => { noise(.35, .3, 2200); tone(300, .2, 'square', .05, -200); },
+  squash: () => { tone(220, .15, 'square', .08, -150); tone(1200, .2, 'triangle', .1, 400, .1); },
+  die: () => { tone(400, .5, 'sawtooth', .12, -340); noise(.3, .15, 700); },
+  win: () => { [523, 659, 784, 1046].forEach((f, i) => tone(f, .25, 'triangle', .12, 0, i * .09)); },
+  open: () => { tone(660, .15, 'sine', .1); tone(990, .3, 'sine', .1, 0, .1); }
+};
+
+// ---------- game state ----------
+let L = 0, s = null, def = null, moveMap = new Map(), lastTick = 0, acc = 0;
+let held = 0, queued = 0, paused = false, deadAt = 0, deathMsg = '', wonShown = false;
+let moves = 0, startTime = 0, exitWasOpen = false;
+let particles = [], shake = 0, cam = { x: 0, y: 0 }, camInit = false;
+let tile = 32, viewW = 0, viewH = 0, dpr = 1;
+let bgLayer = null;
+
+function startLevel(i) {
+  L = i; def = LEVELS[i]; s = loadLevel(def);
+  moveMap = new Map(); particles = []; held = queued = 0; deadAt = 0; wonShown = false;
+  moves = 0; startTime = performance.now(); exitWasOpen = s.gems >= s.need; camInit = false;
+  $('lvlnum').textContent = 'LEVEL ' + (i + 1) + ' / ' + LEVELS.length;
+  $('lvltitle').textContent = def.name;
+  $('ovWin').classList.remove('show');
+  hud(); resize();
+  showToast(def.name, def.hint, 3200);
+}
+function hud() {
+  $('gemn').textContent = Math.min(s.gems, s.need) + '/' + s.need;
+  $('gemchip').classList.toggle('done', s.gems >= s.need);
+  $('keychip').style.display = s.keys > 0 ? 'flex' : 'none';
+  $('keyn').textContent = s.keys;
+}
+let toastTimer = 0;
+function showToast(t, sub, ms) {
+  $('toastT').textContent = t; $('toastS').textContent = sub || '';
+  $('toast').classList.add('show'); clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $('toast').classList.remove('show'), ms);
+}
+
+function doTick(now) {
+  if (!s || paused || s.won) return;
+  if (s.dead) return;
+  let dir = queued || held; queued = 0;
+  const px = s.px, py = s.py;
+  const out = step(s, dir);
+  if (s.px !== px || s.py !== py) moves++;
+  moveMap = new Map();
+  for (const [a, b] of out.moves) moveMap.set(b, a);
+  lastTick = now;
+  for (const [ev, i] of out.events) handleEvent(ev, i);
+  if (!exitWasOpen && s.gems >= s.need) { exitWasOpen = true; SFX.open(); showToast('Exit open!', 'Head for the glowing door.', 1800); }
+  hud();
+}
+function cx(i) { return i % s.w; } function cy(i) { return (i / s.w) | 0; }
+function burst(i, color, n, spd = 2.5, life = 600, size = 3) {
+  const x = cx(i) + .5, y = cy(i) + .5;
+  for (let k = 0; k < n; k++) {
+    const a = Math.random() * Math.PI * 2, v = (.3 + Math.random()) * spd;
+    particles.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 1, life, max: life, color, size: size * (.5 + Math.random()) });
+  }
+}
+function handleEvent(ev, i) {
+  switch (ev) {
+    case 'dig': SFX.dig(); burst(i, '#8a5a32', 5, 1.5, 350, 2.5); break;
+    case 'gem': SFX.gem(); burst(i, '#7cf0ff', 12, 3, 600, 3); break;
+    case 'key': SFX.key(); burst(i, '#ffd76a', 10, 2.5, 600, 3); break;
+    case 'door': SFX.door(); burst(i, '#9b6a3c', 12, 2.5, 600, 4); break;
+    case 'push': SFX.push(); break;
+    case 'land': SFX.land(); shake = Math.max(shake, 4); break;
+    case 'smash': SFX.smash(); shake = 9; burst(i, '#b9b3a8', 16, 4, 700, 4); burst(i, '#cfd6e0', 8, 3, 500, 2); break;
+    case 'squash': SFX.squash(); shake = 6; burst(i, '#c2304a', 14, 3, 700, 3); burst(i, '#7cf0ff', 10, 3, 700, 3); break;
+    case 'win': win(); break;
+    case 'die': case 'crush': case 'bite':
+      deathMsg = ev === 'crush' ? 'Crushed!' : ev === 'bite' ? 'Bitten!' : 'Ouch, spikes!';
+      die(i); break;
+  }
+}
+function die(i) {
+  SFX.die(); shake = 12; deadAt = performance.now();
+  burst(i, '#ff5a4f', 22, 4, 900, 4);
+  const fl = $('flash'); fl.style.transition = 'none'; fl.style.opacity = .45;
+  requestAnimationFrame(() => { fl.style.transition = 'opacity .6s'; fl.style.opacity = 0; });
+  showToast(deathMsg, 'Try again', 1100);
+}
+function win() {
+  SFX.win(); burst(s.py * s.w + s.px, '#5dfc9b', 26, 4, 900, 4);
+  const secs = Math.round((performance.now() - startTime) / 1000);
+  const prev = best[L];
+  if (!prev || moves < prev) best[L] = moves;
+  store.set('best', best);
+  if (L + 2 > unlocked) { unlocked = Math.min(LEVELS.length, L + 2); store.set('unlocked', unlocked); }
+  setTimeout(() => {
+    const last = L === LEVELS.length - 1;
+    $('winT').textContent = last ? 'You conquered the Deep!' : 'Level clear!';
+    $('winS').textContent = moves + ' moves in ' + secs + 's' + (best[L] === moves ? '  ·  best!' : '  ·  best ' + best[L]);
+    $('bNext').textContent = last ? 'Levels' : 'Next';
+    $('ovWin').classList.add('show');
+  }, 650);
+}
+
+// ---------- input ----------
+function press(dir) {
+  if (!dir || !s) return;
+  audio();
+  const changed = held !== dir;
+  held = dir; queued = dir;
+  // respond immediately to a fresh press
+  const now = performance.now();
+  if (changed && now - lastTick > TICK * .45 && !paused && !s.dead && !s.won) { doTick(now); acc = 0; }
+}
+function release(dir) { if (!dir || held === dir) held = 0; }
+const KEYMAP = { ArrowLeft: 1, a: 1, A: 1, ArrowRight: 2, d: 2, D: 2, ArrowUp: 3, w: 3, W: 3, ArrowDown: 4, s: 4, S: 4 };
+addEventListener('keydown', e => {
+  if (KEYMAP[e.key]) { e.preventDefault(); if (!e.repeat) press(KEYMAP[e.key]); }
+  else if (e.key === 'r' || e.key === 'R') startLevel(L);
+  else if (e.key === 'Escape') togglePause();
+});
+addEventListener('keyup', e => { if (KEYMAP[e.key]) release(KEYMAP[e.key]); });
+
+// D-pad: one touch surface, direction from angle (slide your thumb to change direction)
+const dp = $('dpad'), arrows = { 1: $('aL'), 2: $('aR'), 3: $('aU'), 4: $('aD') };
+let dpId = null;
+function dpDir(e) {
+  const r = dp.getBoundingClientRect();
+  const x = e.clientX - (r.left + r.width / 2), y = e.clientY - (r.top + r.height / 2);
+  if (Math.hypot(x, y) < r.width * .1) return 0;
+  return Math.abs(x) > Math.abs(y) ? (x < 0 ? 1 : 2) : (y < 0 ? 3 : 4);
+}
+function lightArrow(d) { for (const k in arrows) arrows[k].classList.toggle('on', +k === d); }
+dp.addEventListener('pointerdown', e => { e.preventDefault(); dpId = e.pointerId; try { dp.setPointerCapture(e.pointerId); } catch (_) {} const d = dpDir(e); lightArrow(d); if (d) press(d); });
+dp.addEventListener('pointermove', e => { if (e.pointerId !== dpId) return; const d = dpDir(e); lightArrow(d); if (d && d !== held) press(d); else if (!d) held = 0; });
+const dpEnd = e => { if (e.pointerId !== dpId) return; dpId = null; lightArrow(0); held = 0; };
+dp.addEventListener('pointerup', dpEnd); dp.addEventListener('pointercancel', dpEnd);
+
+// Swipe on the cave
+let sw = null;
+cv.addEventListener('pointerdown', e => { e.preventDefault(); audio(); sw = { id: e.pointerId, x: e.clientX, y: e.clientY }; try { cv.setPointerCapture(e.pointerId); } catch (_) {} });
+cv.addEventListener('pointermove', e => {
+  if (!sw || e.pointerId !== sw.id) return;
+  const dx = e.clientX - sw.x, dy = e.clientY - sw.y;
+  if (Math.hypot(dx, dy) > 22) {
+    const d = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 1 : 2) : (dy < 0 ? 3 : 4);
+    if (d !== held) press(d);
+    sw.x = e.clientX; sw.y = e.clientY;
+  }
+});
+const swEnd = e => { if (sw && e.pointerId === sw.id) { sw = null; held = 0; } };
+cv.addEventListener('pointerup', swEnd); cv.addEventListener('pointercancel', swEnd);
+document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+document.addEventListener('gesturestart', e => e.preventDefault());
+
+// ---------- buttons / menus ----------
+function togglePause(force) {
+  paused = force !== undefined ? force : !paused;
+  $('ovMenu').classList.toggle('show', paused);
+  held = queued = 0;
+}
+$('bMenu').onclick = () => togglePause();
+$('bResume').onclick = () => togglePause(false);
+$('bRestart').onclick = () => { togglePause(false); startLevel(L); };
+$('bReplay').onclick = () => startLevel(L);
+$('bNext').onclick = () => { if (L < LEVELS.length - 1) startLevel(L + 1); else openTitle(); };
+$('bLevels').onclick = () => { togglePause(false); openTitle(); };
+function syncSound() { $('bSound').textContent = 'Sound: ' + (soundOn ? 'on' : 'off'); }
+$('bSound').onclick = () => { soundOn = !soundOn; store.set('sound', soundOn); syncSound(); if (soundOn) SFX.gem(); };
+syncSound();
+function openTitle() {
+  paused = true;
+  const box = $('levels'); box.innerHTML = '';
+  LEVELS.forEach((lv, i) => {
+    const b = document.createElement('button');
+    b.className = 'btn' + (i >= unlocked ? ' locked' : '') + (i === unlocked - 1 ? ' cur' : '');
+    b.innerHTML = (i + 1) + '<small>' + (best[i] ? '★' : '') + '</small>';
+    b.onclick = () => { if (i < unlocked) { closeTitle(); startLevel(i); } };
+    box.appendChild(b);
+  });
+  $('title').classList.remove('hide');
+}
+function closeTitle() { $('title').classList.add('hide'); paused = false; $('ovMenu').classList.remove('show'); }
+$('bPlay').onclick = () => { audio(); closeTitle(); startLevel(Math.min(unlocked, LEVELS.length) - 1); };
+
+// ---------- rendering ----------
+function resize() {
+  const st = $('stage'); const r = st.getBoundingClientRect();
+  dpr = Math.min(window.devicePixelRatio || 1, 3);
+  viewW = r.width; viewH = r.height;
+  cv.width = Math.round(viewW * dpr); cv.height = Math.round(viewH * dpr);
+  if (!s) return;
+  const cols = Math.min(s.w, VIEW_COLS), rows = Math.min(s.h, VIEW_ROWS);
+  tile = Math.floor(Math.min(viewW / cols, viewH / rows, 72));
+  buildBg();
+}
+addEventListener('resize', () => { resize(); });
+
+function rnd(seed) { let x = Math.sin(seed * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+
+function buildBg() {
+  const W = s.w * tile, H = s.h * tile;
+  bgLayer = document.createElement('canvas');
+  bgLayer.width = Math.round(W * dpr); bgLayer.height = Math.round(H * dpr);
+  const b = bgLayer.getContext('2d'); b.scale(dpr, dpr);
+  // cave floor
+  b.fillStyle = '#1a130e'; b.fillRect(0, 0, W, H);
+  for (let k = 0; k < s.w * s.h * 3; k++) {
+    b.fillStyle = rnd(k) > .5 ? 'rgba(255,220,180,.025)' : 'rgba(0,0,0,.18)';
+    b.beginPath(); b.arc(rnd(k + .3) * W, rnd(k + .7) * H, 1 + rnd(k + .9) * tile * .12, 0, 7); b.fill();
+  }
+  // walls
+  for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) if (s.g[y * s.w + x] === T.WALL) drawWall(b, x, y);
+}
+function isWall(x, y) { return x < 0 || y < 0 || x >= s.w || y >= s.h || s.g[y * s.w + x] === T.WALL; }
+function drawWall(b, x, y) {
+  const t = tile, X = x * t, Y = y * t, seed = x * 31 + y * 17;
+  b.fillStyle = '#3a3c46'; b.fillRect(X, Y, t, t);
+  // bricks
+  const rows = 2;
+  for (let r = 0; r < rows; r++) {
+    const off = (r + y) % 2 ? t / 2 : 0;
+    for (let c = -1; c < 2; c++) {
+      const bx = X + c * t + off, by = Y + r * t / rows, bw = t, bh = t / rows;
+      b.save(); b.beginPath(); b.rect(X, Y, t, t); b.clip();
+      const shade = 50 + rnd(seed + r * 3 + c) * 18;
+      b.fillStyle = `hsl(230,8%,${shade * .55}%)`;
+      b.fillRect(bx + 1, by + 1, bw - 2, bh - 2);
+      b.fillStyle = 'rgba(255,255,255,.08)'; b.fillRect(bx + 1, by + 1, bw - 2, 2);
+      b.fillStyle = 'rgba(0,0,0,.25)'; b.fillRect(bx + 1, by + bh - 3, bw - 2, 2);
+      b.restore();
+    }
+  }
+  // edge shading where wall meets open cave
+  b.fillStyle = 'rgba(0,0,0,.35)';
+  if (!isWall(x, y + 1)) b.fillRect(X, Y + t - 3, t, 3);
+  b.fillStyle = 'rgba(255,240,220,.10)';
+  if (!isWall(x, y - 1)) b.fillRect(X, Y, t, 2);
+}
+
+function drawDirt(c, X, Y, t, seed) {
+  c.fillStyle = '#6a4325'; c.fillRect(X, Y, t, t);
+  for (let k = 0; k < 7; k++) {
+    const r = rnd(seed + k * 1.7);
+    c.fillStyle = r > .5 ? '#7d5432' : '#553419';
+    c.beginPath(); c.arc(X + rnd(seed + k * 2.3) * t, Y + rnd(seed + k * 3.1) * t, t * (.05 + r * .07), 0, 7); c.fill();
+  }
+  c.fillStyle = 'rgba(255,220,170,.08)'; c.fillRect(X, Y, t, 2);
+  c.fillStyle = 'rgba(0,0,0,.2)'; c.fillRect(X, Y + t - 2, t, 2);
+}
+function drawBoulder(c, X, Y, t, seed) {
+  const cx = X + t / 2, cy = Y + t / 2, r = t * .44;
+  c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(cx, Y + t * .93, r * .85, t * .08, 0, 0, 7); c.fill();
+  const g = c.createRadialGradient(cx - r * .35, cy - r * .4, r * .1, cx, cy, r);
+  g.addColorStop(0, '#d4cdbf'); g.addColorStop(.55, '#8c857a'); g.addColorStop(1, '#4b463f');
+  c.fillStyle = g; c.beginPath(); c.arc(cx, cy, r, 0, 7); c.fill();
+  c.strokeStyle = 'rgba(40,35,30,.55)'; c.lineWidth = Math.max(1, t * .04);
+  c.beginPath(); c.moveTo(cx + r * .1, cy - r * .2); c.lineTo(cx + r * .4, cy + r * .1); c.lineTo(cx + r * .3, cy + r * .45); c.stroke();
+  c.fillStyle = 'rgba(0,0,0,.18)'; c.beginPath(); c.arc(cx - r * .35, cy + r * .35, r * .12, 0, 7); c.fill();
+}
+function drawGem(c, X, Y, t, time, seed) {
+  const cx = X + t / 2, cy = Y + t / 2 + Math.sin(time / 300 + seed) * t * .03, w = t * .38, h = t * .36;
+  const glow = c.createRadialGradient(cx, cy, 1, cx, cy, t * .55);
+  glow.addColorStop(0, 'rgba(70,227,255,.28)'); glow.addColorStop(1, 'rgba(70,227,255,0)');
+  c.fillStyle = glow; c.fillRect(X - t * .1, Y - t * .1, t * 1.2, t * 1.2);
+  const top = cy - h * .55, mid = cy - h * .1, bot = cy + h * .75;
+  c.fillStyle = '#1fb7dd';
+  c.beginPath(); c.moveTo(cx - w * .55, top); c.lineTo(cx + w * .55, top); c.lineTo(cx + w, mid); c.lineTo(cx, bot); c.lineTo(cx - w, mid); c.closePath(); c.fill();
+  c.fillStyle = '#7ff0ff';
+  c.beginPath(); c.moveTo(cx - w * .55, top); c.lineTo(cx + w * .55, top); c.lineTo(cx + w * .3, mid); c.lineTo(cx - w * .3, mid); c.closePath(); c.fill();
+  c.fillStyle = '#0f8fb3';
+  c.beginPath(); c.moveTo(cx + w * .3, mid); c.lineTo(cx + w, mid); c.lineTo(cx, bot); c.closePath(); c.fill();
+  c.fillStyle = '#4fd8f5';
+  c.beginPath(); c.moveTo(cx - w * .3, mid); c.lineTo(cx + w * .3, mid); c.lineTo(cx, bot); c.closePath(); c.fill();
+  // twinkle
+  const tw = (Math.sin(time / 260 + seed * 3) + 1) / 2;
+  if (tw > .6) {
+    const k = (tw - .6) / .4, sx = cx - w * .3, sy = top + h * .12, R = t * .16 * k;
+    c.strokeStyle = `rgba(255,255,255,${k})`; c.lineWidth = Math.max(1, t * .035);
+    c.beginPath(); c.moveTo(sx - R, sy); c.lineTo(sx + R, sy); c.moveTo(sx, sy - R); c.lineTo(sx, sy + R); c.stroke();
+  }
+}
+function drawKey(c, X, Y, t, time) {
+  const cx = X + t / 2, cy = Y + t / 2 + Math.sin(time / 350) * t * .04;
+  const glow = c.createRadialGradient(cx, cy, 1, cx, cy, t * .5);
+  glow.addColorStop(0, 'rgba(255,200,61,.3)'); glow.addColorStop(1, 'rgba(255,200,61,0)');
+  c.fillStyle = glow; c.fillRect(X, Y, t, t);
+  c.strokeStyle = '#ffc83d'; c.lineWidth = t * .09; c.lineCap = 'round';
+  c.beginPath(); c.arc(cx - t * .17, cy, t * .13, 0, 7); c.stroke();
+  c.beginPath(); c.moveTo(cx - t * .04, cy); c.lineTo(cx + t * .3, cy); c.moveTo(cx + t * .22, cy); c.lineTo(cx + t * .22, cy + t * .12); c.moveTo(cx + t * .3, cy); c.lineTo(cx + t * .3, cy + t * .09); c.stroke();
+  c.lineCap = 'butt';
+}
+function drawDoor(c, X, Y, t) {
+  c.fillStyle = '#2b2e36'; c.fillRect(X, Y, t, t);
+  const p = t * .1;
+  c.fillStyle = '#7a4b25'; c.fillRect(X + p, Y + p, t - 2 * p, t - p);
+  c.fillStyle = 'rgba(0,0,0,.25)';
+  for (let k = 1; k < 3; k++) c.fillRect(X + p + (t - 2 * p) * k / 3 - 1, Y + p, 2, t - p);
+  c.fillStyle = '#4a4f5a'; c.fillRect(X + p, Y + t * .25, t - 2 * p, t * .08); c.fillRect(X + p, Y + t * .7, t - 2 * p, t * .08);
+  c.fillStyle = '#ffc83d'; c.beginPath(); c.arc(X + t / 2, Y + t * .5, t * .09, 0, 7); c.fill();
+  c.fillStyle = '#1a1208'; c.fillRect(X + t / 2 - t * .025, Y + t * .5, t * .05, t * .1);
+}
+function drawSpikes(c, X, Y, t) {
+  c.fillStyle = '#2a2a30'; c.fillRect(X + t * .06, Y + t * .8, t * .88, t * .14);
+  for (let k = 0; k < 3; k++) {
+    const bx = X + t * (.1 + k * .28), bw = t * .24;
+    const g = c.createLinearGradient(bx, 0, bx + bw, 0);
+    g.addColorStop(0, '#e8edf5'); g.addColorStop(.5, '#a5adbb'); g.addColorStop(1, '#5b6170');
+    c.fillStyle = g; c.beginPath(); c.moveTo(bx, Y + t * .82); c.lineTo(bx + bw / 2, Y + t * .18); c.lineTo(bx + bw, Y + t * .82); c.closePath(); c.fill();
+  }
+  c.fillStyle = 'rgba(200,30,30,.5)';
+  for (let k = 0; k < 3; k++) { const bx = X + t * (.1 + k * .28) + t * .12; c.beginPath(); c.arc(bx, Y + t * .22, t * .025, 0, 7); c.fill(); }
+}
+function drawExit(c, X, Y, t, open, time) {
+  c.fillStyle = '#4a4d57'; c.beginPath(); c.roundRect ? c.roundRect(X + t * .06, Y + t * .04, t * .88, t * .96, [t * .44, t * .44, 2, 2]) : c.rect(X + t * .06, Y + t * .04, t * .88, t * .96); c.fill();
+  const ix = X + t * .2, iy = Y + t * .18, iw = t * .6, ih = t * .82;
+  c.save(); c.beginPath(); c.roundRect ? c.roundRect(ix, iy, iw, ih, [t * .3, t * .3, 0, 0]) : c.rect(ix, iy, iw, ih); c.clip();
+  if (open) {
+    const g = c.createRadialGradient(X + t / 2, Y + t * .6, 1, X + t / 2, Y + t * .6, t * .55);
+    g.addColorStop(0, '#eafff3'); g.addColorStop(.35, '#5dfc9b'); g.addColorStop(1, '#0b5a3a');
+    c.fillStyle = g; c.fillRect(ix, iy, iw, ih);
+    c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = Math.max(1, t * .03);
+    for (let k = 0; k < 3; k++) { const a = time / 400 + k * 2.1; c.beginPath(); c.arc(X + t / 2, Y + t * .62, t * (.1 + k * .08), a, a + 2); c.stroke(); }
+  } else {
+    c.fillStyle = '#0d0a08'; c.fillRect(ix, iy, iw, ih);
+    c.fillStyle = '#6b6f7a';
+    for (let k = 0; k < 3; k++) c.fillRect(ix + iw * (.2 + k * .3) - t * .025, iy, t * .05, ih);
+  }
+  c.restore();
+  if (open) { c.fillStyle = `rgba(93,252,155,${.15 + .1 * Math.sin(time / 200)})`; c.beginPath(); c.arc(X + t / 2, Y + t / 2, t * .7, 0, 7); c.fill(); }
+}
+function drawPlayer(c, X, Y, t, time, walking, facing, dead) {
+  const cx = X + t / 2, by = Y + t;
+  const bob = walking ? Math.abs(Math.sin(time / 60)) * t * .05 : 0;
+  const leg = walking ? Math.sin(time / 60) * t * .08 : 0;
+  c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(cx, by - t * .06, t * .26, t * .06, 0, 0, 7); c.fill();
+  // legs
+  c.fillStyle = '#3d2c1e';
+  c.fillRect(cx - t * .14 + leg, by - t * .3, t * .11, t * .24);
+  c.fillRect(cx + t * .03 - leg, by - t * .3, t * .11, t * .24);
+  // body
+  const top = Y + t * .4 - bob;
+  c.fillStyle = '#c99a5b'; c.beginPath(); c.roundRect ? c.roundRect(cx - t * .2, top, t * .4, t * .34, t * .08) : c.rect(cx - t * .2, top, t * .4, t * .34); c.fill();
+  c.fillStyle = '#8a5a2b'; c.fillRect(cx - t * .2, top + t * .22, t * .4, t * .05);
+  // backpack
+  c.fillStyle = '#6b4a2a'; c.fillRect(cx - facing * t * .27 - t * .06, top + t * .04, t * .12, t * .22);
+  // head
+  const hy = Y + t * .3 - bob;
+  c.fillStyle = '#f1c08a'; c.beginPath(); c.arc(cx, hy, t * .16, 0, 7); c.fill();
+  // eyes
+  c.fillStyle = '#1b120b';
+  if (dead) { c.font = `bold ${t * .14}px sans-serif`; c.textAlign = 'center'; c.fillText('x x', cx + facing * t * .03, hy + t * .05); }
+  else { c.beginPath(); c.arc(cx + facing * t * .07, hy + t * .01, t * .028, 0, 7); c.arc(cx + facing * t * .01 - facing * t * .05, hy + t * .01, t * .028, 0, 7); c.fill(); }
+  // hat
+  c.fillStyle = '#6e4423'; c.beginPath(); c.ellipse(cx, hy - t * .09, t * .27, t * .06, 0, 0, 7); c.fill();
+  c.fillStyle = '#7f5129'; c.beginPath(); c.roundRect ? c.roundRect(cx - t * .14, hy - t * .27, t * .28, t * .2, [t * .1, t * .1, 2, 2]) : c.rect(cx - t * .14, hy - t * .27, t * .28, t * .2); c.fill();
+  c.fillStyle = '#2b1a0c'; c.fillRect(cx - t * .14, hy - t * .13, t * .28, t * .04);
+  // headlamp glint
+  c.fillStyle = '#fff4b0'; c.beginPath(); c.arc(cx + facing * t * .1, hy - t * .18, t * .035, 0, 7); c.fill();
+}
+function drawBeetle(c, X, Y, t, time, dir) {
+  const cx = X + t / 2, cy = Y + t * .6;
+  c.fillStyle = 'rgba(0,0,0,.35)'; c.beginPath(); c.ellipse(cx, Y + t * .92, t * .3, t * .06, 0, 0, 7); c.fill();
+  c.strokeStyle = '#1a0d0d'; c.lineWidth = Math.max(1.5, t * .045);
+  for (let k = -1; k <= 1; k++) {
+    const sw = Math.sin(time / 70 + k * 2) * t * .05;
+    c.beginPath(); c.moveTo(cx + k * t * .12, cy); c.lineTo(cx + k * t * .16 + sw, Y + t * .9); c.stroke();
+  }
+  const g = c.createRadialGradient(cx - t * .08, cy - t * .12, 1, cx, cy, t * .32);
+  g.addColorStop(0, '#ff7a6b'); g.addColorStop(.5, '#b3202f'); g.addColorStop(1, '#4a0b14');
+  c.fillStyle = g; c.beginPath(); c.ellipse(cx, cy, t * .3, t * .22, 0, Math.PI, 0); c.lineTo(cx + t * .3, cy + t * .06); c.lineTo(cx - t * .3, cy + t * .06); c.fill();
+  c.strokeStyle = 'rgba(0,0,0,.5)'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(cx, cy - t * .22); c.lineTo(cx, cy + t * .06); c.stroke();
+  c.fillStyle = '#1a0d0d'; c.beginPath(); c.arc(cx + dir * t * .3, cy - t * .02, t * .1, 0, 7); c.fill();
+  c.fillStyle = '#ffe36b'; c.beginPath(); c.arc(cx + dir * t * .34, cy - t * .05, t * .03, 0, 7); c.fill();
+  c.fillStyle = 'rgba(0,0,0,.35)';
+  c.beginPath(); c.arc(cx - t * .12, cy - t * .1, t * .04, 0, 7); c.arc(cx + t * .1, cy - t * .07, t * .035, 0, 7); c.fill();
+}
+
+let lastFrame = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(50, now - lastFrame); lastFrame = now;
+  if (s && !paused) {
+    if (s.dead) { if (deadAt && now - deadAt > 1150) startLevel(L); }
+    else if (!s.won) {
+      acc += dt;
+      if (acc >= TICK) { acc = acc % TICK; doTick(now); }
+    }
+  }
+  render(now, dt);
+}
+function render(now, dt) {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = '#0b0806'; ctx.fillRect(0, 0, viewW, viewH);
+  if (!s || !bgLayer) return;
+  const t = tile;
+  const alpha = Math.min(1, (now - lastTick) / TICK);
+  const pI = s.py * s.w + s.px;
+  const pFrom = moveMap.get(pI);
+  const ppx = pFrom !== undefined ? cx(pFrom) + (s.px - cx(pFrom)) * alpha : s.px;
+  const ppy = pFrom !== undefined ? cy(pFrom) + (s.py - cy(pFrom)) * alpha : s.py;
+  // camera
+  const W = s.w * t, H = s.h * t;
+  let tx = (ppx + .5) * t - viewW / 2, ty = (ppy + .5) * t - viewH / 2;
+  tx = W <= viewW ? (W - viewW) / 2 : Math.max(0, Math.min(W - viewW, tx));
+  ty = H <= viewH ? (H - viewH) / 2 : Math.max(0, Math.min(H - viewH, ty));
+  if (!camInit) { cam.x = tx; cam.y = ty; camInit = true; }
+  const k = 1 - Math.pow(.001, dt / 1000 * 1.6);
+  cam.x += (tx - cam.x) * k; cam.y += (ty - cam.y) * k;
+  let sx = 0, sy = 0;
+  if (shake > 0) { sx = (Math.random() - .5) * shake; sy = (Math.random() - .5) * shake; shake *= .85; if (shake < .3) shake = 0; }
+  const ox = Math.round(-cam.x + sx), oy = Math.round(-cam.y + sy);
+  ctx.save(); ctx.translate(ox, oy);
+  ctx.drawImage(bgLayer, 0, 0, W, H);
+  const x0 = Math.max(0, Math.floor(cam.x / t) - 1), x1 = Math.min(s.w, Math.ceil((cam.x + viewW) / t) + 1);
+  const y0 = Math.max(0, Math.floor(cam.y / t) - 1), y1 = Math.min(s.h, Math.ceil((cam.y + viewH) / t) + 1);
+  const open = s.gems >= s.need;
+  // static layer
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+    const i = y * s.w + x, v = s.g[i], X = x * t, Y = y * t;
+    if (v === T.DIRT) drawDirt(ctx, X, Y, t, i * 13.7);
+    else if (v === T.EXIT) drawExit(ctx, X, Y, t, open, now);
+    else if (v === T.DOOR) drawDoor(ctx, X, Y, t);
+    else if (v === T.SPIKES) drawSpikes(ctx, X, Y, t);
+    else if (v === T.KEY) drawKey(ctx, X, Y, t, now);
+  }
+  // moving things
+  for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+    const i = y * s.w + x, v = s.g[i];
+    if (v !== T.BOULDER && v !== T.GEM && v !== T.BEETLE) continue;
+    const from = moveMap.get(i);
+    let fx = x, fy = y;
+    if (from !== undefined) { fx = cx(from) + (x - cx(from)) * alpha; fy = cy(from) + (y - cy(from)) * alpha; }
+    const X = fx * t, Y = fy * t;
+    if (v === T.BOULDER) drawBoulder(ctx, X, Y, t, i);
+    else if (v === T.GEM) drawGem(ctx, X, Y, t, now, (i * 7) % 13);
+    else drawBeetle(ctx, X, Y, t, now, s.d[i] || 1);
+  }
+  // player
+  if (!s.won || alpha < 1) {
+    const walking = pFrom !== undefined && alpha < 1 || (held && !s.dead);
+    if (s.won) ctx.globalAlpha = 1 - alpha;
+    drawPlayer(ctx, ppx * t, ppy * t, t, now, walking, s.facing, s.dead);
+    ctx.globalAlpha = 1;
+  }
+  // particles
+  for (let p = particles.length - 1; p >= 0; p--) {
+    const q = particles[p];
+    q.life -= dt; if (q.life <= 0) { particles.splice(p, 1); continue; }
+    q.vy += 6 * dt / 1000; q.x += q.vx * dt / 1000; q.y += q.vy * dt / 1000;
+    ctx.globalAlpha = q.life / q.max; ctx.fillStyle = q.color;
+    ctx.fillRect(q.x * t - q.size / 2, q.y * t - q.size / 2, q.size, q.size);
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+  // vignette
+  const vg = ctx.createRadialGradient(viewW / 2, viewH / 2, Math.min(viewW, viewH) * .35, viewW / 2, viewH / 2, Math.max(viewW, viewH) * .75);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.55)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, viewW, viewH);
+}
+
+// title gem animation
+const tg = $('titleGem'), tgc = tg.getContext('2d');
+function titleLoop(now) {
+  if (!$('title').classList.contains('hide')) {
+    tgc.clearRect(0, 0, 240, 240);
+    drawGem(tgc, 20, 20, 200, now, 1);
+  }
+  requestAnimationFrame(titleLoop);
+}
+
+// boot
+openTitle();
+requestAnimationFrame(frame); requestAnimationFrame(titleLoop);
+document.addEventListener('visibilitychange', () => { if (document.hidden && s && !paused && $('title').classList.contains('hide')) togglePause(true); });
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  try { navigator.serviceWorker.register('sw.js').catch(() => {}); } catch (e) {}
+}
+window.__dd = { replay(path) { for (const ch of path) { queued = +ch; doTick(performance.now()); } return { won: s.won, dead: s.dead, gems: s.gems }; }, get dbg() { return {viewW, viewH, tile, cam, W:s.w*tile, H:s.h*tile}; }, get s() { return s; }, startLevel, press, release, step: () => doTick(performance.now()) };
+})();
+</script>
+</body>
+</html>
